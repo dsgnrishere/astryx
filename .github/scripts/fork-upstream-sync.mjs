@@ -68,10 +68,11 @@ export function isConfigurationOnly(paths) {
   );
 }
 
-function gh(args) {
+function gh(args, token = process.env.GH_TOKEN) {
   return execFileSync('gh', args, {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
+    env: {...process.env, GH_TOKEN: token},
   }).trim();
 }
 
@@ -169,16 +170,19 @@ export function sync() {
           'base=main',
         ]),
   );
-  gh([
-    'api',
-    '--method',
-    'POST',
-    `repos/${repository}/actions/workflows/fork-checks.yml/dispatches`,
-    '-f',
-    `ref=${updateBranch}`,
-    '-f',
-    `inputs[pr_number]=${pr.number}`,
-  ]);
+  gh(
+    [
+      'api',
+      '--method',
+      'POST',
+      `repos/${repository}/actions/workflows/fork-checks.yml/dispatches`,
+      '-f',
+      `ref=${updateBranch}`,
+      '-f',
+      `inputs[pr_number]=${pr.number}`,
+    ],
+    process.env.CHECKS_TOKEN,
+  );
   if (process.env.GITHUB_STEP_SUMMARY) {
     appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
