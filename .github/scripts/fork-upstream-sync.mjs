@@ -140,7 +140,7 @@ export function sync() {
     '',
     '## Evidence',
     'The candidate contains the fork base, upstream tip, and previous integration tip as ancestors.',
-    'Package validation is dispatched explicitly; its workflow run is linked on this pull request.',
+    'Required pull-request checks validate the proposed merge before it can land.',
   ].join('\n');
   const fields = [
     '-f',
@@ -169,20 +169,10 @@ export function sync() {
           'base=main',
         ]),
   );
-  gh([
-    'api',
-    '--method',
-    'POST',
-    `repos/${repository}/actions/workflows/fork-checks.yml/dispatches`,
-    '-f',
-    `ref=${updateBranch}`,
-    '-f',
-    `inputs[pr_number]=${pr.number}`,
-  ]);
   if (process.env.GITHUB_STEP_SUMMARY) {
     appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
-      `Upstream: ${upstream}\n\nReview: ${pr.html_url}\n\nChecks dispatched for ${candidate}. No automatic merge.\n`,
+      `Upstream: ${upstream}\n\nReview: ${pr.html_url}\n\nCandidate ${candidate} awaits required pull-request checks. No automatic merge.\n`,
     );
   }
   console.log(
