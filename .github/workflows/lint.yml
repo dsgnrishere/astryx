@@ -239,11 +239,20 @@ jobs:
             | sed 's#.*refs/tags/##' \
             | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
             | sort -V | tail -n 1)
+          RELEASE_REMOTE=origin
+          # This fork has no releases of its own; retain the upstream API baseline.
+          if [ -z "$RELEASED" ] && [ "$GITHUB_REPOSITORY" = dsgnrishere/astryx ]; then
+            RELEASE_REMOTE=https://github.com/meta/astryx.git
+            RELEASED=$(git ls-remote --tags --refs "$RELEASE_REMOTE" 'v*' \
+              | sed 's#.*refs/tags/##' \
+              | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+              | sort -V | tail -n 1)
+          fi
           if [ -z "$RELEASED" ]; then
             echo 'No vX.Y.Z release tag found to compare CLI JSON ids against.'
             exit 1
           fi
-          git fetch --no-tags --depth=1 origin "+refs/tags/${RELEASED}:refs/tags/${RELEASED}"
+          git fetch --no-tags --depth=1 "$RELEASE_REMOTE" "+refs/tags/${RELEASED}:refs/tags/${RELEASED}"
           node scripts/release/changeset-coverage.mjs pr \
             --base "$MERGE_SHA^1" --head "$MERGE_SHA" --released "$RELEASED"
 

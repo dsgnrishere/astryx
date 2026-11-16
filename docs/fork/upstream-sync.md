@@ -39,9 +39,11 @@ to these fork automation files run the synchronization safety tests instead.
 Browser, visual, accessibility audit, native Swift, and publication checks remain
 separate; passing this gate is not visual acceptance or a product release.
 
-Inherited CI, lint, main-validation, and review workflows remain enabled. Their
-upstream service assumptions can require separate fork configuration; for
-example, the inherited lint workflow expects release tags in this repository.
+Inherited CI, lint, main-validation, and review workflows remain enabled.
+Repository variables `ENGOWNERS` and `DESIGNOWNERS` identify `dsgnrishere`,
+the existing maintainer. Until this fork has stable release tags of its own,
+lint reads the original repository's latest stable release as its API baseline.
+The compatibility and Changeset checks still run; no release is created here.
 The separate `Main heavy lanes` scheduler is disabled to avoid automatic
 preparation of original releases. Synchronization does not activate publishing
 or deployment workflows. Review those separately before use.
