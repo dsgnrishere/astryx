@@ -1,0 +1,33 @@
+name: Fork upstream sync
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: fork-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'dsgnrishere/astryx' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Test sync safety
+        run: node --test .github/scripts/fork-upstream-sync.test.mjs
+      - name: Fetch upstream and propose a checked merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node .github/scripts/fork-upstream-sync.mjs

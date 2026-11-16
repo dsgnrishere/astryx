@@ -1,0 +1,136 @@
+name: Fork checks
+run-name: Fork checks for PR ${{ github.event.pull_request.number || inputs.pr_number }}
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Open pull request to validate at this exact branch commit'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: fork-checks-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    if: github.repository == 'dsgnrishere/astryx'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      merge: ${{ steps.scope.outputs.merge }}
+      source: ${{ steps.scope.outputs.source }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve the exact pull request merge
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          node --input-type=module <<'JS'
+          import {execFileSync} from 'node:child_process';
+          import {appendFileSync} from 'node:fs';
+          import {isConfigurationOnly} from './.github/scripts/fork-upstream-sync.mjs';
+          const number = process.env.PR_NUMBER;
+          if (!/^[1-9][0-9]*$/.test(number)) throw new Error('Invalid PR number');
+          const repository = process.env.GITHUB_REPOSITORY;
+          const pr = JSON.parse(execFileSync('gh', ['api', `repos/${repository}/pulls/${number}`], {encoding: 'utf8'}));
+          if (pr.state !== 'open' || pr.base.ref !== 'main' || pr.base.repo.full_name !== repository) throw new Error('Expected an open PR into this main');
+          if (process.env.EVENT_NAME === 'workflow_dispatch' && (pr.head.repo.full_name !== repository || pr.head.sha !== process.env.DISPATCH_SHA)) throw new Error('Dispatch does not match the current PR head');
+          const merge = pr.merge_commit_sha;
+          if (!/^[0-9a-f]{40}$/.test(merge || '')) throw new Error('PR has no merge candidate; resolve conflicts first');
+          const git = args => execFileSync('git', args, {encoding: 'utf8'}).trim();
+          git(['fetch', '--no-tags', `https://github.com/${repository}.git`, `refs/pull/${number}/merge`]);
+          if (git(['rev-parse', 'FETCH_HEAD']) !== merge || git(['rev-parse', `${merge}^1`]) !== pr.base.sha || git(['rev-parse', `${merge}^2`]) !== pr.head.sha) throw new Error('PR moved while resolving; retry checks');
+          const paths = git(['diff', '--name-only', pr.base.sha, merge]).split('\n').filter(Boolean);
+          appendFileSync(process.env.GITHUB_OUTPUT, `merge=${merge}\nsource=${!isConfigurationOnly(paths)}\n`);
+          JS
+      - name: Test sync safety
+        run: node --test .github/scripts/fork-upstream-sync.test.mjs
+
+  packages:
+    needs: prepare
+    if: needs.prepare.outputs.source == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.merge }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - run: pnpm typecheck
+
+  tests:
+    needs: prepare
+    if: needs.prepare.outputs.source == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.merge }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm test
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+  lint:
+    needs: prepare
+    if: needs.prepare.outputs.source == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.merge }}
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - run: pnpm lint
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+  fork-checks:
+    name: fork-checks
+    needs: [prepare, packages, tests, lint]
+    if: always() && github.repository == 'dsgnrishere/astryx'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Require every applicable check
+        env:
+          PREPARE: ${{ needs.prepare.result }}
+          SOURCE: ${{ needs.prepare.outputs.source }}
+          PACKAGES: ${{ needs.packages.result }}
+          TESTS: ${{ needs.tests.result }}
+          LINT: ${{ needs.lint.result }}
+        run: |
+          test "$PREPARE" = success
+          if [ "$SOURCE" = true ]; then
+            test "$PACKAGES" = success
+            test "$TESTS" = success
+            test "$LINT" = success
+          elif [ "$SOURCE" = false ]; then
+            test "$PACKAGES" = skipped
+            test "$TESTS" = skipped
+            test "$LINT" = skipped
+          else
+            exit 1
+          fi
