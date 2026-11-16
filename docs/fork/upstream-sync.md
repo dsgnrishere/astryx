@@ -32,16 +32,32 @@ The synchronization workflow stays disabled until the credential is installed
 and a maintainer enables it. Then run it manually once and inspect its pull
 request and checks before relying on the daily schedule.
 
-`fork-checks` is the required check on `main`, including administrators. It
-validates the exact pull request merge. Source or dependency updates run package
-builds, type checks, unit tests, and lint with repository guardrails. Changes only
-to these fork automation files run the synchronization safety tests instead.
+`fork-checks` validates the exact pull-request merge and runs dependency-free
+synchronization safety proofs. The original `test`, `build`, `docsite-test`,
+and `lint` checks remain the single owners of source validation. All five
+contexts are required on `main`, including administrators. The fork workflow
+does not duplicate the original package builds, type checks or test suites.
 Browser, visual, accessibility audit, native Swift, and publication checks remain
 separate; passing this gate is not visual acceptance or a product release.
 
-Inherited CI, lint, main-validation, and review workflows remain enabled. Their
-upstream service assumptions can require separate fork configuration; for
-example, the inherited lint workflow expects release tags in this repository.
+Inherited CI, lint, main-validation, and review workflows remain enabled.
+Repository variables `ENGOWNERS` and `DESIGNOWNERS` identify `dsgnrishere`,
+the existing maintainer. Until this fork has releases of its own, lint uses
+the original repository's latest stable release as its API baseline.
+
+For the dedicated upstream PR, lint reproduces the automatic merge of the fork
+base and the verified upstream ancestor. The existing Changeset validator then
+checks any fork-authored delta against that tree. Previously released vendor
+changes do not need invented fork release notes; new fork source changes still
+need their own Changeset. Missing ancestry or merge conflicts fail the check.
+
+When GitHub truncates a large upstream PR's file list, review reads the complete
+Git diff from immutable commits in a temporary bare clone. It verifies the file
+count, preserves rename paths, and executes no PR-controlled code. The helper
+comes from the trusted workflow commit. Other PRs keep the original API path.
+
+Dependency-free safety proofs use `*.node-test.mjs` and run explicitly with
+Node in the fork workflows. They do not enter the separate Vitest suite.
 The separate `Main heavy lanes` scheduler is disabled to avoid automatic
 preparation of original releases. Synchronization does not activate publishing
 or deployment workflows. Review those separately before use.

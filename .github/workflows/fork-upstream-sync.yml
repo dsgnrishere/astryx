@@ -1,3 +1,5 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+
 name: Fork upstream sync
 
 on:
@@ -32,7 +34,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.UPSTREAM_SYNC_TOKEN }}
       - name: Test sync safety
-        run: node --test .github/scripts/fork-upstream-sync.test.mjs
+        run: node --test .github/scripts/fork-*.node-test.mjs
       - name: Fetch upstream and propose a checked merge
         env:
           GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN }}

@@ -1,3 +1,5 @@
+// Copyright (c) Meta Platforms, Inc. and affiliates.
+
 import {execFileSync} from 'node:child_process';
 import {appendFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
@@ -52,20 +54,6 @@ export function mergeCandidate({
     }
   }
   return sha;
-}
-
-export function isConfigurationOnly(paths) {
-  return (
-    paths.length > 0 &&
-    paths.every(
-      path =>
-        path === '.github/workflows/fork-upstream-sync.yml' ||
-        path === '.github/workflows/fork-checks.yml' ||
-        path === '.github/scripts/fork-upstream-sync.mjs' ||
-        path === '.github/scripts/fork-upstream-sync.test.mjs' ||
-        path.startsWith('docs/fork/'),
-    )
-  );
 }
 
 function gh(args) {
