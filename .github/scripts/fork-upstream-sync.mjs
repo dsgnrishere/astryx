@@ -61,8 +61,9 @@ export function isConfigurationOnly(paths) {
       path =>
         path === '.github/workflows/fork-upstream-sync.yml' ||
         path === '.github/workflows/fork-checks.yml' ||
-        path === '.github/scripts/fork-upstream-sync.mjs' ||
-        path === '.github/scripts/fork-upstream-sync.test.mjs' ||
+        path.startsWith('.github/scripts/fork-') ||
+        path === '.github/workflows/lint.yml' ||
+        path === '.github/workflows/review-signal.yml' ||
         path.startsWith('docs/fork/'),
     )
   );

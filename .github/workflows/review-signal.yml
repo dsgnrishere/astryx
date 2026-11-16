@@ -394,9 +394,32 @@ jobs:
 
 
             // --- Changed files. ---
-            const allFiles = await github.paginate(github.rest.pulls.listFiles, {
+            let allFiles = await github.paginate(github.rest.pulls.listFiles, {
               owner, repo, pull_number: pr.number, per_page: 100,
             });
+            if (allFiles.length !== pr.changed_files &&
+                `${owner}/${repo}` === 'dsgnrishere/astryx' &&
+                pr.head.ref === 'sync/upstream-main' &&
+                pr.head.repo.full_name === `${owner}/${repo}`) {
+              const {data: helperFile} = await github.rest.repos.getContent({
+                owner, repo, ref: context.sha,
+                path: '.github/scripts/fork-git-files.cjs',
+              });
+              const helperModule = {exports: {}};
+              const allowed = new Set(['node:child_process', 'node:fs', 'node:os', 'node:path']);
+              new Function('module', 'exports', 'require', Buffer.from(helperFile.content, 'base64').toString('utf8'))(
+                helperModule, helperModule.exports,
+                name => {
+                  if (!allowed.has(name)) throw new Error(`Unexpected inventory dependency: ${name}`);
+                  return require(name);
+                },
+              );
+              allFiles = helperModule.exports.readGitFiles({
+                repository: `${owner}/${repo}`, base: pr.base.sha,
+                head: pr.head.sha, expected: pr.changed_files,
+              });
+              core.info(`Read all ${allFiles.length} files through Git; no PR source was executed.`);
+            }
             if (allFiles.length !== pr.changed_files) {
               throw new Error(
                 `GitHub returned ${allFiles.length} of ${pr.changed_files} changed files; refusing to classify an incomplete PR.`,

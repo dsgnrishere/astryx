@@ -60,7 +60,7 @@ jobs:
           appendFileSync(process.env.GITHUB_OUTPUT, `merge=${merge}\nsource=${!isConfigurationOnly(paths)}\n`);
           JS
       - name: Test sync safety
-        run: node --test .github/scripts/fork-upstream-sync.test.mjs
+        run: node --test .github/scripts/fork-*.node-test.mjs
 
   packages:
     needs: prepare

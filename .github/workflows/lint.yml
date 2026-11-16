@@ -240,7 +240,6 @@ jobs:
             | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
             | sort -V | tail -n 1)
           RELEASE_REMOTE=origin
-          # This fork has no releases of its own; retain the upstream API baseline.
           if [ -z "$RELEASED" ] && [ "$GITHUB_REPOSITORY" = dsgnrishere/astryx ]; then
             RELEASE_REMOTE=https://github.com/meta/astryx.git
             RELEASED=$(git ls-remote --tags --refs "$RELEASE_REMOTE" 'v*' \
@@ -253,8 +252,19 @@ jobs:
             exit 1
           fi
           git fetch --no-tags --depth=1 "$RELEASE_REMOTE" "+refs/tags/${RELEASED}:refs/tags/${RELEASED}"
-          node scripts/release/changeset-coverage.mjs pr \
-            --base "$MERGE_SHA^1" --head "$MERGE_SHA" --released "$RELEASED"
+          if [ "$GITHUB_REPOSITORY" = dsgnrishere/astryx ] && [ "$GITHUB_HEAD_REF" = sync/upstream-main ]; then
+            if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+              git fetch --unshallow --no-tags --filter=blob:none origin
+            fi
+            git config remote.origin.promisor true
+            git config remote.origin.partialclonefilter blob:none
+            git fetch --no-tags --filter=blob:none https://github.com/meta/astryx.git main
+            UPSTREAM=$(git merge-base "$MERGE_SHA" FETCH_HEAD)
+            node .github/scripts/fork-sync-coverage.mjs "$MERGE_SHA^1" "$UPSTREAM" "$MERGE_SHA" "$RELEASED"
+          else
+            node scripts/release/changeset-coverage.mjs pr \
+              --base "$MERGE_SHA^1" --head "$MERGE_SHA" --released "$RELEASED"
+          fi
 
       - name: Skip full lint for lightweight docs
         if: steps.scope.outputs.docsite_only == 'true' || steps.scope.outputs.spec_only == 'true'

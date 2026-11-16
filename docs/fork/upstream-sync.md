@@ -41,9 +41,22 @@ separate; passing this gate is not visual acceptance or a product release.
 
 Inherited CI, lint, main-validation, and review workflows remain enabled.
 Repository variables `ENGOWNERS` and `DESIGNOWNERS` identify `dsgnrishere`,
-the existing maintainer. Until this fork has stable release tags of its own,
-lint reads the original repository's latest stable release as its API baseline.
-The compatibility and Changeset checks still run; no release is created here.
+the existing maintainer. Until this fork has releases of its own, lint uses
+the original repository's latest stable release as its API baseline.
+
+For the dedicated upstream PR, lint reproduces the automatic merge of the fork
+base and the verified upstream ancestor. The existing Changeset validator then
+checks any fork-authored delta against that tree. Previously released vendor
+changes do not need invented fork release notes; new fork source changes still
+need their own Changeset. Missing ancestry or merge conflicts fail the check.
+
+When GitHub truncates a large upstream PR's file list, review reads the complete
+Git diff from immutable commits in a temporary bare clone. It verifies the file
+count, preserves rename paths, and executes no PR-controlled code. The helper
+comes from the trusted workflow commit. Other PRs keep the original API path.
+
+Dependency-free safety proofs use `*.node-test.mjs` and run explicitly with
+Node in the fork workflows. They do not enter the separate Vitest suite.
 The separate `Main heavy lanes` scheduler is disabled to avoid automatic
 preparation of original releases. Synchronization does not activate publishing
 or deployment workflows. Review those separately before use.
