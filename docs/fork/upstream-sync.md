@@ -32,10 +32,11 @@ The synchronization workflow stays disabled until the credential is installed
 and a maintainer enables it. Then run it manually once and inspect its pull
 request and checks before relying on the daily schedule.
 
-`fork-checks` is the required check on `main`, including administrators. It
-validates the exact pull request merge. Source or dependency updates run package
-builds, type checks, unit tests, and lint with repository guardrails. Changes only
-to these fork automation files run the synchronization safety tests instead.
+`fork-checks` validates the exact pull-request merge and runs dependency-free
+synchronization safety proofs. The original `test`, `build`, `docsite-test`,
+and `lint` checks remain the single owners of source validation. All five
+contexts are required on `main`, including administrators. The fork workflow
+does not duplicate the original package builds, type checks or test suites.
 Browser, visual, accessibility audit, native Swift, and publication checks remain
 separate; passing this gate is not visual acceptance or a product release.
 

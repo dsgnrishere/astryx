@@ -3,12 +3,7 @@ import {mkdtempSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {test} from 'node:test';
-import {
-  git,
-  isAncestor,
-  isConfigurationOnly,
-  mergeCandidate,
-} from './fork-upstream-sync.mjs';
+import {git, isAncestor, mergeCandidate} from './fork-upstream-sync.mjs';
 
 function fixture(t) {
   const cwd = mkdtempSync(join(tmpdir(), 'fork-sync-test-'));
@@ -68,26 +63,4 @@ test('conflicts leave the original branch tips and a clean worktree', t => {
   assert.equal(g('rev-parse', 'main'), base);
   assert.equal(g('rev-parse', 'upstream'), upstream);
   assert.equal(g('status', '--porcelain'), '');
-});
-
-test('configuration-only routing never skips validation for source or dependencies', () => {
-  assert.equal(
-    isConfigurationOnly([
-      '.github/workflows/fork-checks.yml',
-      'docs/fork/upstream-sync.md',
-    ]),
-    true,
-  );
-  for (const path of [
-    'packages/core/src/Button/Button.tsx',
-    'pnpm-lock.yaml',
-    '.github/workflows/ci.yml',
-    'package.json',
-  ]) {
-    assert.equal(
-      isConfigurationOnly(['.github/workflows/fork-checks.yml', path]),
-      false,
-    );
-  }
-  assert.equal(isConfigurationOnly([]), false);
 });
