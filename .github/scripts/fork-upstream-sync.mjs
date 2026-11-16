@@ -54,21 +54,6 @@ export function mergeCandidate({
   return sha;
 }
 
-export function isConfigurationOnly(paths) {
-  return (
-    paths.length > 0 &&
-    paths.every(
-      path =>
-        path === '.github/workflows/fork-upstream-sync.yml' ||
-        path === '.github/workflows/fork-checks.yml' ||
-        path.startsWith('.github/scripts/fork-') ||
-        path === '.github/workflows/lint.yml' ||
-        path === '.github/workflows/review-signal.yml' ||
-        path.startsWith('docs/fork/'),
-    )
-  );
-}
-
 function gh(args) {
   return execFileSync('gh', args, {
     encoding: 'utf8',
