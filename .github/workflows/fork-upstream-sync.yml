@@ -16,9 +16,7 @@ jobs:
     if: github.repository == 'dsgnrishere/astryx' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
-      contents: read
-      actions: write
+    permissions: {}
     steps:
       - name: Require a repository-scoped synchronization credential
         env:
@@ -38,5 +36,4 @@ jobs:
       - name: Fetch upstream and propose a checked merge
         env:
           GH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN }}
-          CHECKS_TOKEN: ${{ github.token }}
         run: node .github/scripts/fork-upstream-sync.mjs

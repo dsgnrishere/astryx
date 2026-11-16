@@ -23,8 +23,10 @@ Actions; never put the value in a pull request, chat, or source file.
 The built-in token cannot transfer upstream changes to workflow files. The
 repository-wide setting that lets Actions create and approve pull requests is
 not needed and stays off. The scoped credential pushes branches and opens
-pull requests. The built-in `GITHUB_TOKEN` only reads source and dispatches
-`Fork checks`, with no content-writing or pull-request approval rights.
+pull requests, which trigger the normal pull-request checks. The sync job gives
+its built-in `GITHUB_TOKEN` no permissions. Read-only check jobs receive no sync
+credential. Manual diagnostic runs have a separate concurrency group, so they
+cannot cancel the pull-request check required by branch protection.
 
 The synchronization workflow stays disabled until the credential is installed
 and a maintainer enables it. Then run it manually once and inspect its pull
@@ -44,7 +46,8 @@ The separate `Main heavy lanes` scheduler is disabled to avoid automatic
 preparation of original releases. Synchronization does not activate publishing
 or deployment workflows. Review those separately before use.
 
-To retry checks after editing the integration branch, run `Fork checks` from that
-branch and provide its open pull request number. To refresh it from upstream,
-run `Fork upstream sync` from `main`. A rejected or conflicting update never
-authorizes a force-push or a merge without passing checks.
+To retry a failed pull-request check, use Re-run all jobs on that pull request's
+`Fork checks` run. A manual workflow dispatch is diagnostic and does not replace
+a failed check on the pull-request merge commit. To refresh the integration
+from upstream, run `Fork upstream sync` from `main`. A rejected or conflicting
+update never authorizes a force-push or a merge without passing checks.
