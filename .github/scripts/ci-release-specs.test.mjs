@@ -231,11 +231,26 @@ describe('release-specs (changed)', () => {
     ).toEqual([spec]);
   });
 
-  it("uses the gating release check's runner, config and timing gate, on one worker", () => {
+  it('keeps four-core release runners, config and timing gate, on one worker', () => {
     // The release check runs its contracts on 4-core-ubuntu when a person or
     // the release tooling dispatches it.
     expect(contracts['runs-on']).toContain("'4-core-ubuntu'");
-    expect(job['runs-on']).toBe('4-core-ubuntu');
+    const runner = repository =>
+      Function(
+        'github',
+        `return (${job['runs-on'].slice(3, -2)});`,
+      )({repository});
+    expect(runner('meta/astryx')).toBe('4-core-ubuntu');
+    expect(runner('dsgnrishere/astryx')).toBe('ubuntu-latest');
+    const capacity = job.steps.find(
+      each => each.name === 'Require four cores for fork timing contracts',
+    );
+    expect(capacity.if).toBe("github.repository == 'dsgnrishere/astryx'");
+    expect(capacity.run).toContain('availableParallelism() < 4');
+    expect(capacity.run).toContain('throw new Error');
+  });
+
+  it('keeps the release config and timing gate, on one worker', () => {
     expect(run.env.ASTRYX_TABLE_TIMING_GATE).toBe('1');
     expect(run.env.A11Y_CONTRACT_WORKERS).toBeUndefined();
     const release = contracts.steps.find(

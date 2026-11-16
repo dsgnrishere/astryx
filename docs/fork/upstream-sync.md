@@ -67,3 +67,8 @@ To retry a failed pull-request check, use Re-run all jobs on that pull request's
 a failed check on the pull-request merge commit. To refresh the integration
 from upstream, run `Fork upstream sync` from `main`. A rejected or conflicting
 update never authorizes a force-push or a merge without passing checks.
+
+The public fork has no Meta-specific `4-core-ubuntu` pool. Its planned release
+specs use standard `ubuntu-latest` and fail unless at least four CPUs are
+available. The same specs, one-worker execution, timing thresholds and timing
+gate remain enabled. The original repository retains its dedicated pool.

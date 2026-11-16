@@ -5689,9 +5689,9 @@ jobs:
     name: release-specs (shard ${{ matrix.shard }}/${{ matrix.of }})
     needs: [room, admission, heavy-ci, build-storybook, release-specs-plan]
     if: ${{ (github.event_name != 'pull_request' || !github.event.pull_request.draft && (github.event.pull_request.head.repo.full_name == github.repository || contains(github.event.pull_request.labels.*.name, 'ci:run'))) && (!cancelled() && needs.heavy-ci.outputs.deferred != 'true' && (github.event_name != 'workflow_dispatch' && always() && !cancelled() && needs.room.outputs.full != 'true' && needs.room.outputs.superseded != 'true' && needs.admission.outputs.full != 'true' && needs.release-specs-plan.outputs.has_specs == 'true')) }}
-    # The gating release check runs its contracts on four cores; timing
-    # budgets hold only on that runner.
-    runs-on: 4-core-ubuntu
+    # Meta uses its dedicated four-core pool. This public fork uses the
+    # standard four-core hosted runner and verifies CPU capacity below.
+    runs-on: ${{ github.repository != 'dsgnrishere/astryx' && '4-core-ubuntu' || 'ubuntu-latest' }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -5753,6 +5753,10 @@ jobs:
 
       - name: Install Playwright
         run: pnpm install --frozen-lockfile && npx playwright install chromium
+
+      - name: Require four cores for fork timing contracts
+        if: github.repository == 'dsgnrishere/astryx'
+        run: node -e 'if (require("node:os").availableParallelism() < 4) throw new Error("Release timing contracts require at least four CPUs")'
 
       # The job never drops a planned spec (spec:AST-030 FR32): one the head
       # lacks, or one outside the config's spec globs, fails here by name.
