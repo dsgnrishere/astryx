@@ -37,10 +37,11 @@ const workflows = fs
     yaml.parse(fs.readFileSync(path.join(dir, name), 'utf8')),
   ])
   .filter(([, value]) => startsOnPullRequest(value));
-// The jobs that report a required context (build, test, docsite-test, lint).
+// The jobs that report a required context.
 const REQUIRED = {
   'ci.yml': ['build', 'docsite-test', 'test'],
   'lint.yml': ['lint'],
+  'fork-checks.yml': ['fork-checks'],
 };
 
 const escape = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -143,6 +144,7 @@ describe('pull-request CI gate (spec:AST-030 FR17)', () => {
       'cli-smoke-test.yml',
       'codemod-verify.yml',
       'crowdin-download.yml',
+      'fork-checks.yml',
       'internal-registry.yml',
       'lint.yml',
       'perf-nightly.yml',

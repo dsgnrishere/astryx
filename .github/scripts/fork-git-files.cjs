@@ -1,3 +1,5 @@
+// Copyright (c) Meta Platforms, Inc. and affiliates.
+
 const {execFileSync} = require('node:child_process');
 const {mkdtempSync, rmSync} = require('node:fs');
 const {tmpdir} = require('node:os');
