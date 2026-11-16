@@ -1,3 +1,5 @@
+// Copyright (c) Meta Platforms, Inc. and affiliates.
+
 import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {

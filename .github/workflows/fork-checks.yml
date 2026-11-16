@@ -1,3 +1,5 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+
 name: Fork checks
 run-name: Fork checks for PR ${{ github.event.pull_request.number || inputs.pr_number }}
 
@@ -17,16 +19,21 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: fork-checks-${{ github.event.pull_request.number || inputs.pr_number }}-${{ github.event_name }}
-  cancel-in-progress: true
+  group: fork-checks-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   fork-checks:
     name: fork-checks
-    if: github.repository == 'dsgnrishere/astryx'
+    if: (github.event_name != 'pull_request' || !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Require CI admission
+        if: ${{ github.event_name == 'pull_request' && !(github.event.pull_request.head.repo.full_name == github.repository || contains(github.event.pull_request.labels.*.name, 'ci:run')) }}
+        run: |
+          echo 'This pull request requires the ci:run label before checks can run.'
+          exit 1
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
